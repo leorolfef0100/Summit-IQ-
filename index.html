@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no"/>
+ <title>Summit IQ</title>
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  <!-- TikTok 广告 SDK (必须加) -->
+  <script src="https://sf-tb-sg.ibytedtos.com/union/js/RPS-wx2s91s5u.js"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Georgia', serif;
+      touch-action: manipulation;
+    }
+
+    body {
+      background: linear-gradient(to bottom, #0a0a1a, #1a1a3a);
+      color: white;
+      text-align: center;
+      min-height: 100vh;
+      padding: 15px;
+      overflow-x: hidden;
+    }
+
+    .page {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 85vh;
+      gap: 20px;
+    }
+
+    .active {
+      display: flex;
+    }
+
+    /* 提示弹窗 */
+    #hintPopup {
+      position: fixed;
+      top: 100px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(255, 215, 0, 0.9);
+      color: #111;
+      padding: 12px 24px;
+      border-radius: 12px;
+      font-size: 18px;
+      font-weight: bold;
+      z-index: 999;
+      display: none;
+      box-shadow: 0 0 15px gold;
+    }
+
+    /* 广告按钮样式 */
+    .adBtn {
+      background: linear-gradient(145deg, #ff2d55, #ff3b6e);
+      color: white;
+      padding: 14px 30px;
+      border-radius: 50px;
+      border: none;
+      font-size: 18px;
+      font-weight: bold;
+      margin-top: 10px;
+      cursor: pointer;
+    }
+
+    #landing {
+      background: url('https://picsum.photos/id/1040/1200/800') center/cover no-repeat;
+      background-color: rgba(0,0,0,0.6);
+      background-blend-mode: overlay;
+      border-radius: 20px;
+    }
+
+    #landing h1 {
+      font-size: clamp(22px, 5vw, 32px);
+      text-shadow: 0 0 15px gold;
+      padding: 0 10px;
+    }
+
+    .btn {
+      padding: 16px 40px;
+      font-size: clamp(18px, 4vw, 22px);
+      background: linear-gradient(145deg, #ffd700, #ffb300);
+      border: none;
+      border-radius: 50px;
+      font-weight: bold;
+      cursor: pointer;
+      color: #111;
+      box-shadow: 0 4px 15px rgba(255, 179, 0, 0.4);
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .btn:active { transform: scale(0.95); }
+
+    #timer {
+      font-size: clamp(28px, 6vw, 36px);
+      color: #ffdd00;
+      font-weight: bold;
+      text-shadow: 0 0 10px #ff4444;
+      min-height: 40px;
+    }
+
+    .board {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 8px;
+      width: 100%;
+      max-width: 350px;
+      aspect-ratio: 1 / 1;
+    }
+
+    .letter {
+      min-width: 55px; 
+      min-height: 55px;
+      background: rgba(255, 255, 255, 0.1);
+      border: 2px solid #ffb300;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: clamp(20px, 5vw, 26px);
+      cursor: pointer;
+      transition: all 0.15s ease-out;
+      user-select: none;
+    }
+    .letter:active {
+      background: rgba(255, 179, 0, 0.5);
+      transform: scale(0.9);
+    }
+    .letter.selected {
+        background: #ffb300;
+        color: #111;
+        transform: scale(1.05);
+    }
+
+    .answer {
+      display: flex;
+      gap: 6px;
+      margin: 10px 0;
+      flex-wrap: wrap;
+      justify-content: center;
+      min-height: 50px;
+    }
+
+    .blank {
+      width: clamp(30px, 7vw, 40px);
+      height: clamp(35px, 8vw, 45px);
+      border-bottom: 3px solid #ffb300;
+      font-size: clamp(22px, 6vw, 28px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+    }
+    .blank.correct { animation: pop 0.3s ease; }
+    .blank.wrong { animation: shake 0.4s ease; border-color: #ff4444; }
+
+    @keyframes pop {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.3); color: gold; }
+      100% { transform: scale(1); }
+    }
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-5px); }
+      75% { transform: translateX(5px); }
+    }
+
+    .backspace {
+      padding: 12px 25px;
+      background: #555;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 16px;
+    }
+
+    #resultImg {
+      max-width: 90%;
+      max-height: 200px;
+      border-radius: 10px;
+      border: 3px solid gold;
+    }
+
+    #poster {
+      background: #111;
+      color: white;
+      padding: 20px;
+      border-radius: 10px;
+      width: 90%;
+      max-width: 400px;
+      margin-top: 15px;
+    }
+    #poster img {
+        width: 100%;
+        border-radius: 8px;
+        margin-top: 10px;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="hintPopup"></div>
+
+  <div class="page active" id="landing">
+    <h1>🧠 Summit IQ</h1>
+    <p style="margin-top:-15px; font-size:17px;">Test your word skills & speed!</p>
+    <button class="btn" id="startBtn">START GAME</button>
+  </div>
+
+  <div class="page" id="game">
+    <div id="timer">30</div>
+    <div class="board" id="board"></div>
+    <div class="answer" id="answerBlanks"></div>
+    <button class="backspace" id="backBtn">⬅️ Undo</button>
+    <!-- 看广告获得提示 -->
+    <button class="adBtn" id="hintAdBtn">💡 Watch Ad for Hint</button>
+  </div>
+
+  <div class="page" id="result">
+    <h2 id="resultTitle"></h2>
+    <img id="resultImg" />
+    <p id="timeText"></p>
+    <p id="correctWord"></p>
+    
+    <!-- 看广告复活 -->
+    <button class="adBtn" id="reviveAdBtn" style="display:none;">🔄 Watch Ad to Revive</button>
+    
+    <div style="margin-top:15px;">
+      <button class="btn" id="restartBtn">Play Again</button>
+    </div>
+    <button class="btn" id="shareBtn" style="background:#4a90e2;">📷 Share Result</button>
+    <div id="poster" style="display:none;"></div>
+  </div>
+
+  <script>
+    // ==================== TikTok 广告配置 (你只需要改这里) ====================
+    const TikTokAdConfig = {
+      appId: "YOUR_TIKTOK_APP_ID",       // 替换成你的 TikTok 应用 ID
+      rewardAdId: "YOUR_REWARD_AD_ID",   // 激励视频广告 ID
+      interstitialAdId: "YOUR_INTER_AD_ID" // 插屏广告 ID
+    };
+
+    const words = [
+      { word: "TROJANHORSE", tip: "Trojan Horse", img: "https://picsum.photos/id/1074/500/300" },
+      { word: "ZEUS", tip: "Zeus", img: "https://picsum.photos/id/1041/500/300" },
+      { word: "ATHENA", tip: "Athena", img: "https://picsum.photos/id/1057/500/300" },
+      { word: "SPHINX", tip: "Sphinx", img: "https://picsum.photos/id/1060/500/300" },
+      { word: "MEDUSA", tip: "Medusa", img: "https://picsum.photos/id/1069/500/300" },
+      { word: "PANDORASBOX", tip: "Pandora's Box", img: "https://picsum.photos/id/1080/500/300" }
+    ];
+
+    let currentWord, currentImg, currentTip, timeLeft, timer, startTime, isPlaying, hintShown = false;
+    let canRevive = true;
+
+    const landing = document.getElementById("landing");
+    const game = document.getElementById("game");
+    const result = document.getElementById("result");
+    const timerEl = document.getElementById("timer");
+    const board = document.getElementById("board");
+    const answerBlanks = document.getElementById("answerBlanks");
+    const hintPopup = document.getElementById("hintPopup");
+    const hintAdBtn = document.getElementById("hintAdBtn");
+    const reviveAdBtn = document.getElementById("reviveAdBtn");
+
+    startBtn.addEventListener("click", startGame);
+    restartBtn.addEventListener("click", startGame);
+    backBtn.addEventListener("click", undoLastLetter);
+    shareBtn.addEventListener("click", generatePoster);
+    hintAdBtn.addEventListener("click", showAdForHint);
+    reviveAdBtn.addEventListener("click", showAdForRevive);
+
+    // 看广告得提示
+    function showAdForHint() {
+      if (window.pangle && canRevive) {
+        pangle.loadRewardAd(TikTokAdConfig.rewardAdId, () => {
+          showHint();
+        });
+      } else {
+        showHint(); // 本地预览可用
+      }
+    }
+
+    // 看广告复活
+    function showAdForRevive() {
+      if (window.pangle && canRevive) {
+        pangle.loadRewardAd(TikTokAdConfig.rewardAdId, () => {
+          reviveGame();
+        });
+      } else {
+        reviveGame(); // 本地预览可用
+      }
+    }
+
+    function showHint() {
+      hintPopup.textContent = `Hint: ${currentTip}`;
+      hintPopup.style.display = "block";
+      setTimeout(() => hintPopup.style.display = "none", 3000);
+    }
+
+    function reviveGame() {
+      canRevive = false;
+      reviveAdBtn.style.display = "none";
+      timeLeft = 15;
+      timerEl.textContent = timeLeft;
+      timerEl.style.color = "#ffdd00";
+      game.classList.add("active");
+      result.classList.remove("active");
+      isPlaying = true;
+      startTimer();
+    }
+
+    // ========== 游戏主逻辑 ==========
+    function startGame() {
+      landing.classList.remove("active");
+      result.classList.remove("active");
+      game.classList.add("active");
+      initGame();
+    }
+
+    function initGame() {
+      clearInterval(timer);
+      isPlaying = true;
+      hintShown = false;
+      canRevive = true;
+      startTime = Date.now();
+      timeLeft = 30;
+      timerEl.textContent = timeLeft;
+      timerEl.style.color = '#ffdd00';
+      hintPopup.style.display = "none";
+      reviveAdBtn.style.display = "none";
+
+      const random = words[Math.floor(Math.random() * words.length)];
+      currentWord = random.word;
+      currentImg = random.img;
+      currentTip = random.tip;
+
+      answerBlanks.innerHTML = "";
+      for (let i = 0; i < currentWord.length; i++) {
+        const div = document.createElement("div");
+        div.className = "blank";
+        answerBlanks.appendChild(div);
+      }
+      generateBoard();
+      startTimer();
+    }
+
+    function startTimer() {
+      clearInterval(timer);
+      timer = setInterval(() => {
+        if (!isPlaying) return;
+        timeLeft--;
+        timerEl.textContent = timeLeft;
+
+        // 20秒自动提示
+        if(timeLeft === 20 && !hintShown){
+          hintShown = true;
+          showHint();
+        }
+
+        if (timeLeft <= 10) timerEl.style.color = '#ff4444';
+        if (timeLeft <= 0) lose();
+      }, 1000);
+    }
+
+    function generateBoard() {
+      board.innerHTML = "";
+      let letters = currentWord.split("");
+      const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
+      const distractorPool = alphabet.filter(l => !currentWord.includes(l));
+      while (letters.length < 25) {
+        letters.push(distractorPool[Math.floor(Math.random() * distractorPool.length)]);
+      }
+      letters.sort(() => Math.random() - 0.5);
+      letters.forEach(l => {
+        const div = document.createElement("div");
+        div.className = "letter";
+        div.textContent = l;
+        div.addEventListener("click", () => handleLetterClick(div, l));
+        board.appendChild(div);
+      });
+    }
+
+    function handleLetterClick(element, letter) {
+      if (!isPlaying) return;
+      const blanks = document.querySelectorAll(".blank");
+      for (let b of blanks) {
+        if (!b.textContent) {
+          b.textContent = letter;
+          element.classList.add('selected');
+          setTimeout(() => element.classList.remove('selected'), 150);
+          checkWin();
+          break;
+        }
+      }
+    }
+
+    function undoLastLetter() {
+      if (!isPlaying) return;
+      const blanks = document.querySelectorAll(".blank");
+      for (let i = blanks.length - 1; i >= 0; i--) {
+        if (blanks[i].textContent) {
+          blanks[i].textContent = "";
+          break;
+        }
+      }
+    }
+
+    function checkWin() {
+      let val = "";
+      document.querySelectorAll(".blank").forEach(b => val += b.textContent);
+      if (val.length === currentWord.length) {
+        if (val === currentWord) win();
+        else {
+          document.querySelectorAll(".blank").forEach(b => b.classList.add('wrong'));
+          setTimeout(() => {
+            document.querySelectorAll(".blank").forEach(b => {
+              b.classList.remove('wrong');
+              b.textContent = "";
+            });
+          }, 600);
+        }
+      }
+    }
+
+    function win() {
+      clearInterval(timer);
+      isPlaying = false;
+      const used = ((Date.now() - startTime) / 1000).toFixed(1);
+      game.classList.remove("active");
+      result.classList.add("active");
+      resultTitle.textContent = "✨ Excellent!";
+      resultImg.src = currentImg;
+      timeText.textContent = `⏱️ Time: ${used} seconds`;
+      correctWord.textContent = `Unlocked: ${currentWord}`;
+      window.finalTime = used;
+      document.querySelectorAll(".blank").forEach((b, i) => {
+        setTimeout(() => b.classList.add('correct'), i * 50);
+      });
+    }
+
+    function lose() {
+      clearInterval(timer);
+      isPlaying = false;
+      game.classList.remove("active");
+      result.classList.add("active");
+      resultTitle.textContent = "⏰ Time's Up!";
+      resultImg.src = "https://picsum.photos/id/1048/500/300";
+      timeText.textContent = "Try again!";
+      correctWord.textContent = `Correct word: ${currentWord}`;
+      if(canRevive) reviveAdBtn.style.display = "block";
+    }
+
+    async function generatePoster() {
+      shareBtn.textContent = "Generating...";
+      shareBtn.disabled = true;
+      try {
+        const canvas = await html2canvas(result, { backgroundColor: '#1a1a3a', scale: 2, useCORS: true });
+        const imgUrl = canvas.toDataURL('image/png');
+        poster.style.display = 'block';
+        poster.innerHTML = `<h3>My Summit IQ Score</h3><img src="${imgUrl}" alt="Score"><p>Can you beat me?</p>`;
+      } catch (e) {
+        poster.innerHTML = `<p>Failed to generate image.</p>`;
+      } finally {
+        shareBtn.textContent = "📷 Share Result";
+        shareBtn.disabled = false;
+      }
+    }
+  </script>
+</body>
+</html>
